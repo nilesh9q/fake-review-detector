@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FakeShield — Review Detector</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<link rel="icon" href="https://fav.farm/⚡" type="image/x-icon">
+
+<style>
+  .hidden-section { display: none !important; }
+  <style>
+    .hidden-section { display: none !important; }
+    .nav-pill { cursor: pointer; }
+    .about-grid { display: grid; grid-template-columns: 1fr; gap: 20px; margin-top: 20px; }
+    @media(min-width: 768px) { .about-grid { grid-template-columns: 1fr 1fr; } }
+    .member-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); padding: 16px; border-radius: 12px; }
+    .member-name { font-family: 'Syne', sans-serif; font-weight: 700; color: #ff4b2b; font-size: 1.1rem; }
+    .member-role { font-size: 0.85rem; color: #9ca3af; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .member-desc { font-size: 0.9rem; color: #cbd5e1; line-height: 1.5; }
+    .chart-container { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 16px; margin-top: 24px; position: relative; width: 100%; height: 220px; }
+  </style>
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <header class="header">
+    <div class="logo">
+      <span class="logo-icon">⚡</span>
+      <span class="logo-text">FakeShield</span>
+    </div>
+    <nav class="nav-pills">
+      <span class="nav-pill active" id="pill-detector" onclick="switchTab('detector')">Detector</span>
+      <span class="nav-pill" id="pill-about" onclick="switchTab('about')">About</span>
+    </nav>
+    <div id="modelBadge" class="model-badge demo">PRODUCTION MODE</div>
+  </header>
+
+  <main class="main">
+    <section class="hero">
+      <div class="hero-tag">AI-Powered Detection</div>
+      <h1 class="hero-title">Spot the <span class="highlight">Fake.</span><br/>Trust the <span class="highlight-alt">Real.</span></h1>
+      <p class="hero-sub">Paste any product or service review below. Our model analyzes sentiment, word patterns &amp; TF-IDF features to detect deception.</p>
+    </section>
+
+    <div id="detector-section">
+      <div class="card input-card">
+        <div class="card-label">REVIEW INPUT</div>
+        <textarea id="reviewInput" class="review-textarea" placeholder="Paste the review here… e.g. 'This product is absolutely amazing! Best purchase ever!!'" rows="5"></textarea>
+        <div class="input-meta">
+          <span id="charCount" class="char-count">0 characters · 0 words</span>
+          <div class="input-actions">
+            <button class="btn-ghost" id="clearBtn" onclick="clearText()">Clear</button>
+            <button class="btn-primary" id="analyzeBtn" onclick="analyzeReview()">
+              <span class="btn-text" id="btnText">Analyze Review</span>
+              <span class="btn-icon">→</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="samples-section">
+        <span class="samples-label">Try a sample:</span>
+        <div class="sample-pills">
+          <button class="sample-pill" onclick="setSample('genuine')">✅ Sample Genuine</button>
+          <button class="sample-pill" onclick="setSample('fake')">🚨 Sample Fake</button>
+          <button class="sample-pill" onclick="setSample('gibberish')">⌨️ Sample Gibberish</button>
+        </div>
+      </div>
+
+      <div class="card result-card hidden" id="resultCard">
+        <div class="card-label">ANALYSIS RESULT</div>
+        <div class="result-main">
+          <div class="verdict-badge" id="verdictBadge">—</div>
+          <div class="verdict-info">
+            <div class="verdict-title" id="verdictTitle">Analyzing…</div>
+            <div class="verdict-sub" id="verdictSub">Classification mapped against operational NLP matrices.</div>
+          </div>
+          <div class="confidence-ring-wrap">
+            <svg class="confidence-ring" viewBox="0 0 80 80">
+              <circle class="ring-bg" cx="40" cy="40" r="32"/>
+              <circle class="ring-fill" id="ringFill" cx="40" cy="40" r="32" stroke-dasharray="201" stroke-dashoffset="201"/>
+            </svg>
+            <div class="confidence-label">
+              <span id="confidenceNum">0</span><small>%</small>
+              <div class="conf-text">confidence</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="features-grid">
+          <div class="feature-box">
+            <div class="feature-icon">💬</div>
+            <div class="feature-label">Word Count</div>
+            <div class="feature-value" id="featWordCount">—</div>
+          </div>
+          <div class="feature-box">
+            <div class="feature-icon">🎭</div>
+            <div class="feature-label">Sentiment</div>
+            <div class="feature-value" id="featSentiment">—</div>
+          </div>
+          <div class="feature-box">
+            <div class="feature-icon">📊</div>
+            <div class="feature-label">Subjectivity</div>
+            <div class="feature-value" id="featSubjectivity">—</div>
+          </div>
+          <div class="feature-box">
+            <div class="feature-icon">❗</div>
+            <div class="feature-label">Exclamations</div>
+            <div class="feature-value" id="featExclamation">—</div>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <canvas id="telemetryChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div id="about-section" class="card input-card hidden-section">
+      <div class="card-label">ABOUT THE PROJECT</div>
+      <h2 style="font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 700; margin-top: 10px; color: #fff;">Fake Review Detection Pipeline</h2>
+      <p style="font-size: 0.95rem; color: #9ca3af; margin-top: 8px; line-height: 1.6;">
+        This application processes user feedback patterns to uncover artificial ratings manipulation. By integrating custom text parsing pipelines and predictive learning vectors, the system isolates fraudulent activity from valid customer statements.
+      </p>
+      
+      <div class="card-label" style="margin-top: 30px;">GROUP WORK DISTRIBUTION</div>
+      <div class="about-grid">
+        <div class="member-card" style="border-left: 3px solid #ff4b2b;">
+          <div class="member-name">Nilesh Kumawat</div>
+          <div class="member-role">Data Preprocessing &amp; Feature Engineering</div>
+          <div class="member-desc">Developed the textual standardization layers, global lowercase transformation engine, stopword filtering modules, and token lemmatization. Structured high-dimensional TF-IDF vectors and engineered the statistical constraints to detect random keyboard gibberish strings.</div>
+        </div>
+        <div class="member-card">
+          <div class="member-name">Krishna Kundan &amp; Krishna Kunal</div>
+          <div class="member-role">Model Development &amp; Evaluation</div>
+          <div class="member-desc">Optimized statistical machine learning parameters, compiled confusion validation structures, and plotted model diagnostic records.</div>
+        </div>
+        <div class="member-card">
+          <div class="member-name">Siddharth Kushwaha</div>
+          <div class="member-role">Web Application Development</div>
+          <div class="member-desc">Designed the localized style layouts, formatted user tracking mechanics, and integrated frontend interface assets.</div>
+        </div>
+        <div class="member-card">
+          <div class="member-name">Rajesh Kumawat</div>
+          <div class="member-role">Advanced Feature Implementation</div>
+          <div class="member-desc">Supervised behavioral metadata extraction loops and coordinated verification checks for secondary inputs.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <span>FakeShield · Capstone Project · Group 5</span>
+    <span>IIT Patna · TF-IDF · Sentiment Analysis</span>
+  </footer>
+
+  <script>
+    let featureChartInstance = null; 
+
+    const txtArea = document.getElementById('reviewInput');
+    txtArea.addEventListener('input', () => {
+        const text = txtArea.value.trim();
+        const chars = txtArea.value.length;
+        const words = text ? text.split(/\s+/).length : 0;
+        document.getElementById('charCount').innerText = `${chars} characters · ${words} words`;
+    });
+    function switchTab(tab) {
+        const detPill = document.getElementById('pill-detector');
+        const abtPill = document.getElementById('pill-about');
+        const detSec = document.getElementById('detector-section');
+        const abtSec = document.getElementById('about-section');
+        if(tab === 'detector') {
+            detPill.classList.add('active'); abtPill.classList.remove('active');
+            detSec.classList.remove('hidden-section'); abtSec.classList.add('hidden-section');
+        } else {
+            abtPill.classList.add('active'); detPill.classList.remove('active');
+            abtSec.classList.remove('hidden-section'); detSec.classList.add('hidden-section');
+        }
+    }
+
+    function clearText() {
+        txtArea.value = '';
+        document.getElementById('charCount').innerText = '0 characters · 0 words';
+        document.getElementById('resultCard').classList.add('hidden');
+    }
+
+    function setSample(type) {
+        if(type === 'genuine') {
+            txtArea.value = "THE BATTERY BACKUP OF THIS PRODUCT IS EXCELLENT. IT EASILY LASTS FOR 8 HOURS. HIGHLY RECOMMENDED FOR DAILY USE.";
+        } else if(type === 'fake') {
+            txtArea.value = "WOW AMAZING PRODUCT!!! BUY IT RIGHT NOW!!! BEST AMAZING WOW WOW WOW!!!";
+        } else {
+            txtArea.value = "wsedrfghjnwxecfvgbhnj";
+        }
+        txtArea.dispatchEvent(new Event('input'));
+    }
+
+    function renderTelemetryGraph(wordCount, sentimentStr, subjectivityStr) {
+        const ctx = document.getElementById('telemetryChart').getContext('2d'); 
+        const sentimentScore = sentimentStr === "Positive" ? 85 : sentimentStr === "Negative" ? 25 : 50;
+        const subjectivityScore = subjectivityStr === "Highly Opinionated" ? 90 : subjectivityStr === "Moderate" ? 55 : 20;
+        const standardWordBarValue = Math.min(wordCount * 3, 100); 
+
+        if (featureChartInstance) {
+            featureChartInstance.destroy(); 
+        }
+
+        featureChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Word Density %', 'Sentiment Polarity', 'Subjectivity Weight'],
+                datasets: [{
+                    label: 'Feature Weight Metrics',
+                    data: [standardWordBarValue, sentimentScore, subjectivityScore],
+                    backgroundColor: [
+                        'rgba(0, 198, 255, 0.45)',
+                        'rgba(56, 239, 125, 0.45)',
+                        'rgba(155, 89, 182, 0.45)'
+                    ],
+                    borderColor: [
+                        '#00c6ff',
+                        '#38ef7d',
+                        '#9b59b6'
+                    ],
+                    borderWidth: 1.5,
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                indexAxis: 'y', 
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: true }
+                },
+                scales: {
+                    x: { min: 0, max: 100, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af', font: { size: 10 } } },
+                    y: { grid: { display: false }, ticks: { color: '#f3f4f6', font: { size: 11, weight: '600' } } }
+                }
+            }
+        });
+    }
+
+    async function analyzeReview() {
+        const val = txtArea.value.trim();
+        if(!val) { alert("Please input text matrix context first."); return; }
+
+        const btnText = document.getElementById('btnText');
+        btnText.innerText = "Analyzing...";
+        
+        try {
+            const res = await fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ review_text: val })
+            });
+            const data = await res.json();
+            btnText.innerText = "Analyze Review";
+
+            if(data.error) { alert(data.error); return; }
+
+            document.getElementById('resultCard').classList.remove('hidden');
+            document.getElementById('featWordCount').innerText = data.wordCount;
+            document.getElementById('featSentiment').innerText = data.sentiment;
+            document.getElementById('featSubjectivity').innerText = data.subjectivity;
+            document.getElementById('featExclamation').innerText = data.exclamations;
+            document.getElementById('confidenceNum').innerText = data.confidence;
+
+            const badge = document.getElementById('verdictBadge');
+            const title = document.getElementById('verdictTitle');
+            const ring = document.getElementById('ringFill');
+
+            const offset = 201 - (201 * data.confidence / 100);
+            ring.style.strokeDashoffset = offset;
+
+            if(data.is_fake) {
+                badge.innerText = "❌";
+                badge.style.background = "rgba(239, 68, 68, 0.1)";
+                badge.style.color = "#ef4444";
+                title.innerText = "Likely a Fake Review";
+                title.style.color = "#ef4444";
+                ring.style.stroke = "#ef4444";
+            } else {
+                badge.innerText = "✅";
+                badge.style.background = "rgba(16, 185, 129, 0.1)";
+                badge.style.color = "#10b981";
+                title.innerText = "Looks Like a Real Review";
+                title.style.color = "#10b981";
+                ring.style.stroke = "#10b981";
+            }
+
+            renderTelemetryGraph(data.wordCount, data.sentiment, data.subjectivity);
+
+        } catch(err) {
+            btnText.innerText = "Analyze Review";
+            alert("Network link execution failure: " + err);
+        }
+    }
+  </script>
+</body>
+</html>
